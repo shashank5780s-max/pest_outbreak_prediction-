@@ -1,0 +1,45 @@
+/* App specific styles */
+
+.marker-cluster {
+	background-clip: padding-box;
+	border-radius: 9999px;
+}
+
+.marker-cluster div {
+	width: 32px;
+	height: 32px;
+	margin-left: 4px;
+	margin-top: 4px;
+	text-align: center;
+	border-radius: 9999px;
+	font: 700 12px/32px inherit;
+	color: #ffffff;
+}
+
+.marker-cluster span {
+	line-height: 32px;
+}
+
+.marker-cluster-small {
+	background-color: rgba(16, 185, 129, 0.25);
+}
+
+.marker-cluster-small div {
+	background-color: rgba(16, 185, 129, 0.95);
+}
+
+.marker-cluster-medium {
+	background-color: rgba(245, 158, 11, 0.25);
+}
+
+.marker-cluster-medium div {
+	background-color: rgba(245, 158, 11, 0.95);
+}
+
+.marker-cluster-large {
+	background-color: rgba(239, 68, 68, 0.25);
+}
+
+.marker-cluster-large div {
+	background-color: rgba(239, 68, 68, 0.95);
+}

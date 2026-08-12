@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  # ── Backend: lint + test ────────────────────────────────────────────────────
+  backend:
+    name: Backend (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt pytest httpx
+
+      - name: Check for .env secrets (no real keys committed)
+        working-directory: backend
+        run: python scripts/check_secrets.py
+
+      - name: Run pytest
+        working-directory: backend
+        env:
+          # Minimal env so the app can load without real secrets
+          PROJECT_URL: ""
+          API_KEY: ""
+          OPENWEATHER_API_KEY: ""
+          OPENAI_API_KEY: ""
+          FRONTEND_ORIGIN: "http://localhost:3000"
+        run: pytest tests/ -v --tb=short
+
+  # ── Frontend: build check ───────────────────────────────────────────────────
+  frontend:
+    name: Frontend (Node.js)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build (type check + compile)
+        working-directory: frontend
+        env:
+          REACT_APP_API_URL: "http://localhost:8000"
+          CI: "false"  # Treat warnings as warnings, not errors
+        run: npm run build
+
+  # ── Secret scan ─────────────────────────────────────────────────────────────
+  secret-scan:
+    name: Secret Scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

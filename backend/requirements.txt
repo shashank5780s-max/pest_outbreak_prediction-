@@ -1,0 +1,18 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+joblib
+numpy
+scikit-learn
+xgboost
+supabase
+pydantic
+requests
+openai
+python-multipart
+slowapi
+# Leaf disease model (EfficientNet-B0)
+# Install CPU-only build: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+Pillow
