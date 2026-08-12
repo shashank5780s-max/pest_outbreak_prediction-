@@ -67,7 +67,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 # Comma-separated list of allowed frontend origins
 FRONTEND_ORIGINS = [
     o.strip()
-    for o in os.getenv("FRONTEND_ORIGIN", "http://localhost:3000").split(",")
+    for o in os.getenv("FRONTEND_ORIGINS", "http://localhost:3000").split(",")
     if o.strip()
 ]
 
@@ -81,13 +81,23 @@ app = FastAPI(title="AgriPredict Pest Prediction API", version="2.0.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Configure CORS from environment (production-safe)
+# FRONTEND_ORIGINS is a comma-separated list of allowed origins.
+allowed_origins = list(FRONTEND_ORIGINS)
+# Always allow localhost variants for development convenience
+for dev_origin in ("http://localhost:3000", "http://127.0.0.1:3000"):
+    if dev_origin not in allowed_origins:
+        allowed_origins.append(dev_origin)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+logger.info("CORS allowed origins: %s", allowed_origins)
 
 # ── Load ML model and label encoders ─────────────────────────────────────────
 ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
