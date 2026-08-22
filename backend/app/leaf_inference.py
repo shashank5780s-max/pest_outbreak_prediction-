@@ -17,11 +17,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Dict, Optional
 
-import torch
-import torch.nn.functional as F
 from PIL import Image, UnidentifiedImageError
-from torchvision import transforms
-from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 
 logger = logging.getLogger("agripredict.leaf")
 
@@ -29,15 +25,16 @@ ROOT = Path(__file__).parent.parent.parent  # project root
 MODEL_PATH = ROOT / "leaf_model.pth"
 CLASS_NAMES_PATH = ROOT / "class_names.json"
 
-# ── Image preprocessing (must match training pipeline) ────────────────────────
-LEAF_TRANSFORM = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(
-        mean=[0.485, 0.456, 0.406],   # ImageNet mean
-        std=[0.229, 0.224, 0.225],    # ImageNet std
-    ),
-])
+def get_leaf_transform():
+    from torchvision import transforms
+    return transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+        ),
+    ])
 
 # ── Disease treatment & prevention database ────────────────────────────────────
 DISEASE_INFO: Dict[str, Dict] = {
@@ -341,8 +338,10 @@ def load_model_and_classes():
     num_classes = len(class_names)
     logger.info("Loaded %d leaf disease classes", num_classes)
 
-    # Build model architecture matching training
+    import torch
     import torch.nn as nn
+    from torchvision.models import efficientnet_b0
+
     model = efficientnet_b0(weights=None)  # weights=None — we load our own
     model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
 
@@ -383,11 +382,15 @@ def predict_leaf_disease(image_bytes: bytes, filename: str = "") -> Dict:
     except Exception as exc:
         raise ValueError(f"Failed to read image: {exc}")
 
+    import torch
+    import torch.nn.functional as F
+    
     # Load model (cached)
     model, class_names = load_model_and_classes()
 
     # Preprocess
-    tensor = LEAF_TRANSFORM(img).unsqueeze(0)  # [1, 3, 224, 224]
+    transform = get_leaf_transform()
+    tensor = transform(img).unsqueeze(0)  # [1, 3, 224, 224]
 
     # Inference
     with torch.no_grad():

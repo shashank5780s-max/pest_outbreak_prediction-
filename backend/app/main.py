@@ -104,17 +104,24 @@ ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 MODEL_PATH = os.path.join(ROOT, "rice_pest_model.pkl")
 ENCODER_PATH = os.path.join(ROOT, "label_encoders.pkl")
 
-try:
-    model = joblib.load(MODEL_PATH)
-    logger.info("ML model loaded: %s", model.__class__.__name__)
-except Exception as exc:
-    raise RuntimeError(f"Failed to load model from {MODEL_PATH}: {exc}") from exc
+model = None
+label_encoders = None
 
-try:
-    label_encoders: Dict[str, Any] = joblib.load(ENCODER_PATH)
-    logger.info("Label encoders loaded. Keys: %s", list(label_encoders.keys()))
-except Exception as exc:
-    raise RuntimeError(f"Failed to load label encoders from {ENCODER_PATH}: {exc}") from exc
+def get_ml_model():
+    global model, label_encoders
+    if model is None:
+        import gc
+        try:
+            model = joblib.load(MODEL_PATH)
+            logger.info("ML model lazily loaded.")
+        except Exception as exc:
+            logger.error("Failed to load model: %s", exc)
+        try:
+            label_encoders = joblib.load(ENCODER_PATH)
+        except Exception as exc:
+            logger.error("Failed to load encoders: %s", exc)
+        gc.collect()
+    return model, label_encoders
 
 # ── Model feature metadata (discovered via scripts/inspect_model.py) ──────────
 # Model: XGBRegressor — predicts a pest-pressure index (continuous regression)
@@ -197,9 +204,12 @@ def run_model(max_temp: float, min_temp: float, humidity: float, rainfall: float
     Returns None if the model call fails, so callers can fall back gracefully.
     """
     try:
+        mod, _ = get_ml_model()
+        if mod is None:
+            return None
         rh2 = humidity * 0.85  # afternoon humidity proxy
         feature_vector = build_model_features(max_temp, min_temp, humidity, rh2, rainfall, wind)
-        raw_score = float(model.predict(feature_vector)[0])
+        raw_score = float(mod.predict(feature_vector)[0])
         confidence = model_score_to_confidence(raw_score)
         logger.info("Model raw score=%.4f → confidence=%.1f%%", raw_score, confidence)
         return confidence
