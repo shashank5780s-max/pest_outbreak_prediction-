@@ -24,8 +24,8 @@ ENV/
 
 # FastAPI / Python env
 backend/.env
-*.pkl
-*.pth
+# *.pkl (Commented out to allow models)
+# *.pth (Commented out to allow models)
 
 # Node.js / React
 node_modules/
