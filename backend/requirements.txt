@@ -14,6 +14,6 @@ slowapi
 Pillow
 gunicorn
 
-# Note: We install CPU-only PyTorch wheels during Docker image build to avoid
-# large source builds and ensure CPU compatibility. The Dockerfile runs:
-#   pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch torchvision
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
